@@ -1,0 +1,250 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  patient
+  doctor
+  guardian
+}
+
+enum AppointmentStatus {
+  pending
+  confirmed
+  cancelled
+  suggested
+}
+
+enum AppointmentType {
+  consultation
+  procedure
+  scan
+  egg_retrieval
+  embryo_transfer
+}
+
+enum Severity {
+  Mild
+  Moderate
+  Severe
+}
+
+enum LogStatus {
+  on_time
+  late
+  missed
+}
+
+model User {
+  id             String   @id @default(uuid())
+  name           String
+  email          String   @unique
+  passwordHash   String
+  role           Role
+  phone          String?
+  profilePicture String?
+  whatsappNumber String?
+  timezone       String   @default("Asia/Kolkata")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Profile relations
+  patientProfile  PatientProfile?
+  doctorProfile   DoctorProfile?
+  guardianProfile GuardianProfile?
+
+  // Shared relations
+  appointmentsDoctor   Appointment[] @relation("DoctorAppointments")
+  appointmentsPatient  Appointment[] @relation("PatientAppointments")
+  appointmentsGuardian Appointment[] @relation("GuardianAppointments")
+  sentMessages         Message[]     @relation("SentMessages")
+  receivedMessages     Message[]     @relation("ReceivedMessages")
+
+  // For Guardian relationship
+  guardianOf PatientProfile[] @relation("GuardianRelations")
+
+  // Notification and Alert relations
+  notificationPreference NotificationPreference?
+  patientLogs            NotificationLog[] @relation("PatientLogs")
+  recipientLogs          NotificationLog[] @relation("RecipientLogs")
+  doctorAlerts           DoctorAlert[]     @relation("DoctorAlerts")
+  patientAlerts          DoctorAlert[]     @relation("PatientAlerts")
+  resolvedAlerts         DoctorAlert[]     @relation("ResolvedAlerts")
+  availability           Availability[]
+  surrogacyExpenses      SurrogacyExpense[]
+  surrogacyPayments      SurrogacyPayment[]
+  donorProfiles          DonorProfile[]
+  surrogateProfiles      SurrogateProfile[]
+
+  @@index([email])
+}
+
+
+
+
+model PatientProfile {
+  id                    String   @id @default(uuid())
+  userId                String   @unique
+  user                  User     @relation(fields: [userId], references: [id])
+  pregnancyMonth        String?
+  age                   Number?
+  height                Float?
+  weight                Float?
+  pastMedicalConditions String[]
+  medicalNotes          String?
+
+  stressMode       Boolean @default(false)
+  postDeliveryMode Boolean   @default(false)
+  deliveryDate     DateTime?
+  newbornChecklistProgress Json?
+
+  // Lifestyle fields
+  sleepHours    Float?
+  activityLevel String?
+  stressLevel   String?
+
+  // Hormone levels
+  amh          Float?
+  fsh          Float?
+  lh           Float?
+  estradiol    Float?
+  progesterone Float?
+
+  // IVF Details
+  stage       String?
+  cycleNumber Int?
+
+  // Timeline
+  currentDay Int      @default(1)
+  phase      String   @default("Stimulation")
+  startDate  DateTime @default(now())
+  timelineId String?
+  timeline   TreatmentTimeline? @relation(fields: [timelineId], references: [id])
+
+  // Relations
+  assignedDoctorId String?
+  assignedDoctor   User?   @relation(fields: [assignedDoctorId], references: [id])
+  guardians        User[]  @relation("GuardianRelations")
+
+  payments      Payment[]
+  adherenceLogs AdherenceLog[]
+  reports       MedicalReport[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Appointment {
+  id             String            @id @default(uuid())
+  doctorId       String
+  doctor         User              @relation("DoctorAppointments", fields: [doctorId], references: [id])
+  patientId      String
+  patient        User              @relation("PatientAppointments", fields: [patientId], references: [id])
+  guardianId     String?
+  guardian       User?             @relation("GuardianAppointments", fields: [guardianId], references: [id])
+  date           DateTime
+  time           String
+  endTime        String?
+  status         AppointmentStatus @default(pending)
+  type           AppointmentType   @default(consultation)
+  isCritical     Boolean           @default(false)
+  notes          String?
+  rejectionReason String?
+  suggestedTime  String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@index([doctorId, date])
+  @@index([patientId, date])
+}
+
+model TreatmentTimeline {
+  id        String   @id @default(uuid())
+  name      String
+  createdBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  phases         TimelinePhase[]
+  PatientProfile PatientProfile[]
+}
+
+model TimelinePhase {
+  id            String            @id @default(uuid())
+  timelineId    String
+  timeline      TreatmentTimeline @relation(fields: [timelineId], references: [id])
+  label         String
+  durationDays  Int
+  advice        String?
+  dosAndDonts   String[]
+  isWaitingPhase Boolean           @default(false)
+}
+
+model AdherenceLog {
+  id               String         @id @default(uuid())
+  patientId        String
+  patient          PatientProfile @relation(fields: [patientId], references: [id])
+  date             DateTime       @default(now())
+  dailyScore       Int            @default(100)
+  isEscalated      Boolean        @default(false)
+  guardianNotified Boolean        @default(false)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  medicationLogs MedicationLog[]
+  symptomLogs    SymptomLog[]
+
+  @@index([patientId, date])
+}
+
+model MedicationLog {
+  id             String       @id @default(uuid())
+  adherenceLogId String
+  adherenceLog   AdherenceLog @relation(fields: [adherenceLogId], references: [id])
+  medName        String
+  scheduledTime  String?
+  actualTime     DateTime?
+  status         LogStatus    @default(on_time)
+}
+
+model SymptomLog {
+  id             String       @id @default(uuid())
+  adherenceLogId String
+  adherenceLog   AdherenceLog @relation(fields: [adherenceLogId], references: [id])
+  symptom        String?
+  severity       Severity?
+  isAbnormal     Boolean      @default(false)
+  photoPath      String?
+  aiSummary      String?
+  aiDetails      String?
+  reportedAt     DateTime     @default(now())
+}
+
+model Payment {
+  id               String         @id @default(uuid())
+  patientProfileId String
+  patientProfile   PatientProfile @relation(fields: [patientProfileId], references: [id])
+  category         String
+  amount           Float
+  status           String         @default("Pending")
+  dueDate          DateTime?
+  paidDate         DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+}
+
+model Message {
+  id         String   @id @default(uuid())
+  senderId   String
+  sender     User     @relation("SentMessages", fields: [senderId], references: [id])

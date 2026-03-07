@@ -1,0 +1,64 @@
+# Dependencies
+node_modules/
+backend/node_modules/
+
+# Build outputs
+dist/
+dist-ssr/
+
+# Environment files
+.env
+backend/.env
+*.local
+
+# Logs and temporary files
+*.log
+*.txt
+backend/*.log
+backend/*.txt
+tmp/
+
+# Diagnostic and verification scripts (Root)
+check_*.js
+check_*.cjs
+verify_*.js
+verify_*.cjs
+diag.txt
+diag_utf8.txt
+
+# Diagnostic and verification scripts (Backend)
+backend/diag.js
+backend/check_*.js
+backend/verify-*.js
+backend/test-*.js
+backend/test_*.js
+backend/debug-*.js
+backend/find_*.js
+backend/fix_*.js
+backend/log_*.js
+backend/list_*.js
+backend/dump-*.js
+backend/filter-*.js
+backend/read-file-*.js
+backend/restore_*.js
+backend/sanitize.js
+backend/binary_search_schema.js
+backend/clean-schema.js
+backend/clean_schema.js
+backend/fix-env.js
+backend/fix-schema.js
+backend/list-all-models.js
+backend/available_models.json
+backend/check_ai_result.json
+backend/full_model_list.json
+backend/model_results*.json
+
+# Other unwanted files
+.DS_Store
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
