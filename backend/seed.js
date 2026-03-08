@@ -58,7 +58,7 @@ const seedData = async () => {
         const doctorUser = new User({ _id: doctorId, name: 'Dr. Emily Chen', email: 'doctor@example.com', passwordHash, role: 'doctor' });
         const patientUser = new User({ _id: patientId, name: 'Sarah Jenkins', email: 'sarah@example.com', passwordHash, role: 'patient', whatsappNumber: '+919876543210', timezone: 'Asia/Kolkata' });
         const guardianUser = new User({ _id: guardianId, name: 'David Jenkins', email: 'david@example.com', passwordHash, role: 'guardian', whatsappNumber: '+919876543211', timezone: 'Asia/Kolkata' });
-        const assistantUser = new User({ _id: assistantId, name: 'Virtual Assistant', email: 'assistant@ivfcare.com', passwordHash, role: 'doctor' });
+        const assistantUser = new User({ _id: assistantId, name: 'Virtual Assistant', email: 'assistant@gencare.com', passwordHash, role: 'doctor' });
 
         // Additional Demo Patients
         const patientEUser = new User({ name: 'Elena Rodriguez', email: 'elena@example.com', passwordHash, role: 'patient' });

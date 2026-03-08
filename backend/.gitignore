@@ -1,5 +1,50 @@
-node_modules
-# Keep environment variables out of version control
-.env
+# Dependencies
+node_modules/
 
-/generated/prisma
+# Environment files
+.env
+*.local
+
+# Logs and temporary files
+*.log
+*.txt
+logs/
+
+# Diagnostic and verification scripts
+diag.js
+check_*.js
+verify-*.js
+test-*.js
+test_*.js
+debug-*.js
+find_*.js
+fix_*.js
+log_*.js
+list_*.js
+dump-*.js
+filter-*.js
+read-file-*.js
+restore_*.js
+sanitize.js
+binary_search_schema.js
+clean-schema.js
+clean_schema.js
+fix-env.js
+fix-schema.js
+list-all-models.js
+available_models.json
+check_ai_result.json
+full_model_list.json
+model_results*.json
+prisma_*.log
+prisma_*.txt
+
+# OS/Editor files
+.DS_Store
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

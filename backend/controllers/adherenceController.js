@@ -117,7 +117,7 @@ exports.logSymptom = async (req, res) => {
 
         const newSymptom = {
             symptom,
-            severity: severity || 'Moderate',
+            severity: severity ? (severity.charAt(0).toUpperCase() + severity.slice(1).toLowerCase()) : 'Moderate',
             isAbnormal: isAbnormal === 'true' || isAbnormal === true,
             reportedAt: new Date()
         };

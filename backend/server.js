@@ -1,7 +1,19 @@
+console.log('--- BACKEND PROCESS STARTING ---');
+process.stdout.write('[RAW LOG] Node.js is executing server.js\n');
 const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const path = require('path');
+
+// Global error handlers for production stability
+process.on('uncaughtException', (err) => {
+    console.error('[FATAL] Uncaught Exception:', err.message);
+    console.error(err.stack);
+});
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('[FATAL] Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
 const prisma = require('./prisma/client');
 const bcrypt = require('bcryptjs');
 
@@ -9,18 +21,37 @@ dotenv.config({ path: path.join(__dirname, '.env') });
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const HOST = '0.0.0.0'; // Essential for some cloud environments
+
+let requestCount = 0;
 
 // Middleware
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+    origin: (origin, callback) => {
+        const allowed = [
+            /\.vercel\.app$/,        // Vercel deployments
+            /localhost/,              // Local dev
+            /gencare-backend-production\.up\.railway\.app/  // Railway self-calls
+        ];
+        if (!origin || allowed.some(re => re.test(origin))) {
+            callback(null, true);
+        } else {
+            console.warn('[CORS] Blocked origin:', origin);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true
+}));
 
 // Request Logger
 app.use((req, res, next) => {
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+    requestCount++;
+    console.log(`[Request #${requestCount}] ${new Date().toISOString()} - ${req.method} ${req.url}`);
     next();
 });
 
-// Ensure the virtual assistant user always exists in Supabase
+// Ensure the virtual assistant user always exists
 async function ensureAssistantUser() {
     try {
         const email = 'assistant@ivfcare.com';
@@ -29,49 +60,67 @@ async function ensureAssistantUser() {
         if (!existing) {
             await prisma.user.create({
                 data: {
-                    id: '00000000-0000-0000-0000-000000000000', // Specialized UUID for assistant
+                    id: '00000000-0000-0000-0000-000000000000',
                     name: 'Virtual Assistant',
                     email: email,
                     passwordHash: bcrypt.hashSync('assistant_secure_pass', 10),
                     role: 'doctor'
                 }
             });
-            console.log('[Setup] Virtual Assistant user created in Supabase.');
-        } else {
-
-            console.log('[Setup] Virtual Assistant user already exists in Supabase.');
+            console.log('[Setup] Virtual Assistant user created.');
         }
     } catch (err) {
-        console.error('[Setup] Failed to ensure assistant user in Supabase:', err.message);
+        console.error('[Setup] Warning: Could not ensure assistant user:', err.message);
     }
 }
 
-// Database Connection Logic
+// Startup Logic
 const startServer = async () => {
-    // Validate Supabase Configuration
+    // 1. Immediately start listening to satisfy Railway health checks
+    const server = app.listen(PORT, HOST, () => {
+        console.log(`[Server] Gencare API is live on http://${HOST}:${PORT}`);
+        console.log(`[Server] Accepting external traffic via Railway proxy.`);
+    });
+
+    server.on('error', (err) => {
+        console.error('[Server] Fatal Error:', err.message);
+    });
+
+    // 2. Validate Environment
     const supabaseUrl = process.env.SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_ANON_KEY;
+    const dbUrl = process.env.DATABASE_URL;
 
-    if (!supabaseUrl || !supabaseKey) {
-        console.error('CRITICAL: Supabase configuration missing. Backend cannot start.');
-        process.exit(1);
+    // Check for placeholders
+    if (dbUrl && dbUrl.includes('your_') || (dbUrl && dbUrl.includes('password'))) {
+        console.warn('[Setup] CRITICAL: DATABASE_URL appears to contain placeholders. Please update Railway variables.');
     }
 
-    console.log('[Supabase] Strategy: Supplying direct PostgreSQL connection via Prisma.');
+    if (!supabaseUrl || !supabaseKey || !dbUrl) {
+        console.warn('[Setup] Warning: Missing environment variables. Some features may be limited.');
+        return;
+    }
 
-    // Ensure critical setup is done
-    await ensureAssistantUser();
+    try {
+        console.log('[Setup] Testing Database Connection...');
+        // 3. Test Connection
+        await prisma.$connect();
+        console.log('[Setup] Database connection successful.');
 
-    // Start the notification scheduler
-    const { startScheduler } = require('./services/notificationScheduler');
-    startScheduler();
+        // 4. Background initialization
+        await ensureAssistantUser();
 
-    app.listen(PORT, () => {
-        console.log(`Server running on port ${PORT}`);
-        console.log('Connected to Supabase PostgreSQL via Prisma.');
-    });
+        // 4. Notification Scheduler
+        const { startScheduler } = require('./services/notificationScheduler');
+        startScheduler();
+
+        console.log('[Setup] Database connection and scheduler initialized.');
+    } catch (err) {
+        console.error('[Setup] Background initialization failed:', err.message);
+    }
 };
 
+// Routes
 const authRoutes = require('./routes/auth');
 const dashboardRoutes = require('./routes/dashboard');
 const emergencyRoutes = require('./routes/emergency');
@@ -88,7 +137,6 @@ const notificationRoutes = require('./routes/notification');
 const embryoTransferRoutes = require('./routes/embryoTransfer');
 const healthRoutes = require('./routes/health');
 
-// Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/emergency', emergencyRoutes);
@@ -105,9 +153,8 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/embryo-transfer', embryoTransferRoutes);
 app.use('/api/health', healthRoutes);
 
-// Basic Route
 app.get('/', (req, res) => {
-    res.send('GENCARE API Running (Supabase Only Mode)');
+    res.send('GENCARE API - Online');
 });
 
 startServer();

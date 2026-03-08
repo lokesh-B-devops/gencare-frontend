@@ -34,7 +34,7 @@ exports.sendMessage = async (req, res) => {
         });
 
         // 3. Check if recipient is the Virtual Assistant and trigger AI reply
-        if (recipient.email === 'assistant@ivfcare.com' || recipient.name === 'Virtual Assistant') {
+        if (recipient.email === 'assistant@gencare.com' || recipient.name === 'Virtual Assistant') {
             // Fire and forget - don't block the response
             triggerAIResponse(senderId, recipientId, content, category);
         }
