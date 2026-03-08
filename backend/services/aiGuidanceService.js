@@ -10,12 +10,21 @@ function getGenAI() {
 }
 
 const MODEL_PRIORITY = [
+    'gemini-2.0-flash-001',
     'gemini-2.0-flash',
-    'gemini-2.0-flash-exp',
+    'gemini-1.5-flash-001',
     'gemini-1.5-flash-002',
-    'gemini-1.5-flash-8b-001',
-    'gemini-1.5-pro-002'
+    'gemini-1.5-flash',
+    'gemini-1.5-flash-8b',
+    'gemini-1.5-pro-001',
+    'gemini-1.5-pro-002',
+    'gemini-1.5-pro',
+    'gemini-2.0-flash-exp',
+    'gemini-2.0-pro-exp-0205',
+    'gemini-2.0-flash-thinking-exp-1219'
 ];
+
+
 
 /**
  * Main entry point for content generation with multi-model fallback.
