@@ -54,7 +54,7 @@ app.use((req, res, next) => {
 // Ensure the virtual assistant user always exists
 async function ensureAssistantUser() {
     try {
-        const email = 'assistant@ivfcare.com';
+        const email = 'assistant@gencare.com';
         const existing = await prisma.user.findUnique({ where: { email } });
 
         if (!existing) {
