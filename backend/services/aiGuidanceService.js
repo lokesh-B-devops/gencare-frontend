@@ -1,24 +1,20 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const fs = require('fs');
 
-// Module-level singleton
-let _genAI = null;
+// Always read the key fresh from env so Railway variable changes take effect without redeploy
 function getGenAI() {
-    if (!_genAI) {
-        const key = process.env.GEMINI_API_KEY;
-        if (!key) throw new Error('GEMINI_API_KEY not configured');
-        console.log(`[AI] Initializing GenAI with key: ${key.substring(0, 6)}... (length: ${key.length})`);
-        _genAI = new GoogleGenerativeAI(key);
-    }
-    return _genAI;
+    const key = process.env.GEMINI_API_KEY;
+    if (!key) throw new Error('GEMINI_API_KEY not configured');
+    console.log(`[AI] Initializing GenAI with key: ${key.substring(0, 6)}... (length: ${key.length})`);
+    return new GoogleGenerativeAI(key);
 }
 
 const MODEL_PRIORITY = [
-    'models/gemini-2.5-flash',
-    'gemini-1.5-flash',
-    'gemini-1.5-flash-8b',
-    'gemini-2.0-flash-001',
-    'gemini-2.0-flash-exp'
+    'gemini-2.0-flash',
+    'gemini-2.0-flash-exp',
+    'gemini-1.5-flash-002',
+    'gemini-1.5-flash-8b-001',
+    'gemini-1.5-pro-002'
 ];
 
 /**
